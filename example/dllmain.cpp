@@ -1,4 +1,4 @@
-#include "../VFTHook.h"
+#include "../src/VFTHook.h"
 
 /// <summary>
 /// Not a good example of a pointer traversal function, it's here just for the sake of the demonstration :P
