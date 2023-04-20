@@ -44,7 +44,7 @@ public:
 	/// <summary>
 	/// Unhooks a virtual function, restoring the original function pointer while preserving the hook chain (if it exists)
 	/// </summary>
-	~VFTHook()
+	virtual ~VFTHook()
 	{
 		HookLayout* hook = reinterpret_cast<HookLayout*>(allocationBase);
 		if (!hook) return;
