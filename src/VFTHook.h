@@ -47,13 +47,13 @@ public:
 	/// </summary>
 	virtual ~VFTHookTemplate()
 	{
-		HookTemplate::Base* hook = reinterpret_cast<HookTemplate::Base*>(allocationBase);
+		HookType* hook = reinterpret_cast<HookType*>(allocationBase);
 		if (!hook) return;
 
 		// find the topmost in the chain hook
-		HookTemplate::Base* topHook = hook;
-		while (topHook->hookData.previous->hookData.magic == hook->hookData.magic) {
-			topHook = topHook->hookData.previous;
+		HookType* topHook = hook;
+		while (reinterpret_cast<HookType*>(topHook->hookData.previous)->hookData.magic == hook->hookData.magic) {
+			topHook = reinterpret_cast<HookType*>(topHook->hookData.previous);
 		}
 
 		// lock top hook's mutex when hooking and unhooking
@@ -61,8 +61,8 @@ public:
 		mutex.lock();
 
 		// the hook data is above the actual hook function pointed at
-		HookTemplate::Base* nextHook = reinterpret_cast<HookTemplate::Base*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookTemplate::Base::HookData));
-		HookTemplate::Base* prevHook = hook->hookData.previous;
+		HookType* nextHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookTemplate::HookData));
+		HookType* prevHook = reinterpret_cast<HookType*>(hook->hookData.previous);
 
 		// if the hook to be removed is in a chain, the reference to it is removed from the chain
 		if (hook->hookData.magic == nextHook->hookData.magic) {
@@ -115,12 +115,12 @@ private:
 		// set up new hook data
 		hook->hookData.mutex.reset(new std::mutex);
 		hook->hookData.fnHooked = *vftEntry;
-		hook->hookData.previous = reinterpret_cast<HookTemplate::Base*>(vftEntry);
+		hook->hookData.previous = reinterpret_cast<void*>(vftEntry);
 		hook->hookData.fnNew = reinterpret_cast<void*>(function);
 
 		// get and check for any previously placed hooks, which will need to be chained together
 		// the hook data is above the actual hook function pointed to
-		HookType* prevHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookType::HookData));
+		HookType* prevHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookTemplate::HookData));
 		if (hook->hookData.magic == prevHook->hookData.magic) {
 			// lock top hook's mutex when hooking and unhooking
 			std::mutex& mutex = *prevHook->hookData.mutex;
@@ -130,7 +130,7 @@ private:
 			_mm_mfence();
 			if (hook->hookData.fnHooked != *vftEntry) {
 				hook->hookData.fnHooked = *vftEntry;
-				prevHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookType::HookData));
+				prevHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookTemplate::HookData));
 			}
 			VFTHookTemplate::rdataWrite(&prevHook->hookData.previous, hook);
 			VFTHookTemplate::rdataWrite(vftEntry, &hook->asmRaw);
