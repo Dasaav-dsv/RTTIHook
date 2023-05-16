@@ -61,7 +61,7 @@ public:
 		mutex.lock();
 
 		// the hook data is above the actual hook function pointed at
-		HookType* nextHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookTemplate::HookData));
+		HookType* nextHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookData));
 		HookType* prevHook = reinterpret_cast<HookType*>(hook->hookData.previous);
 
 		// if the hook to be removed is in a chain, the reference to it is removed from the chain
@@ -120,7 +120,7 @@ private:
 
 		// get and check for any previously placed hooks, which will need to be chained together
 		// the hook data is above the actual hook function pointed to
-		HookType* prevHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookTemplate::HookData));
+		HookType* prevHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookData));
 		if (hook->hookData.magic == prevHook->hookData.magic) {
 			// lock top hook's mutex when hooking and unhooking
 			std::mutex& mutex = *prevHook->hookData.mutex;
@@ -130,7 +130,7 @@ private:
 			_mm_mfence();
 			if (hook->hookData.fnHooked != *vftEntry) {
 				hook->hookData.fnHooked = *vftEntry;
-				prevHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookTemplate::HookData));
+				prevHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookData));
 			}
 			VFTHookTemplate::rdataWrite(&prevHook->hookData.previous, hook);
 			VFTHookTemplate::rdataWrite(vftEntry, &hook->asmRaw);
@@ -150,4 +150,4 @@ private:
 	void* allocationBase = nullptr;
 };
 
-using VFTHook = VFTHookTemplate<HookTemplate::Base>;
+using VFTHook = VFTHookTemplate<EntryHook>;
