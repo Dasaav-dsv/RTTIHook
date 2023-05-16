@@ -4,7 +4,7 @@
 #include <immintrin.h>
 
 #include "RTTIScanner.h"
-#include "VFTHookTemplates.h"
+#include "HookTemplates.h"
 
 /// <summary>
 /// A managed hook template.
