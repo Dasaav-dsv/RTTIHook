@@ -61,7 +61,7 @@ public:
 		mutex.lock();
 
 		// the hook data is above the actual hook function pointed at
-		HookType* nextHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookData));
+		HookType* nextHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookBase));
 		HookType* prevHook = reinterpret_cast<HookType*>(hook->hookData.previous);
 
 		// if the hook to be removed is in a chain, the reference to it is removed from the chain
@@ -81,6 +81,8 @@ public:
 		// the hook is freed, we can unlock
 		mutex.unlock();
 
+		// destroy the hook and free the memory.
+		hook->~HookType();
 		VirtualFree(this->allocationBase, NULL, MEM_RELEASE);
 	}
 
@@ -107,8 +109,7 @@ private:
 		if (!allocationBase) return;
 
 		this->allocationBase = allocationBase;
-		HookType hookLayout = HookType{};
-		HookType* hook = reinterpret_cast<HookType*>(std::memcpy(allocationBase, &hookLayout, sizeof(HookType)));
+		HookType* hook = new(allocationBase) HookType{};
 
 		void** vftEntry = &reinterpret_cast<void**>(pVirtualFunctionTable)[vftIndex];
 
@@ -120,7 +121,7 @@ private:
 
 		// get and check for any previously placed hooks, which will need to be chained together
 		// the hook data is above the actual hook function pointed to
-		HookType* prevHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookData));
+		HookType* prevHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookBase));
 		if (hook->hookData.magic == prevHook->hookData.magic) {
 			// lock top hook's mutex when hooking and unhooking
 			std::mutex& mutex = *prevHook->hookData.mutex;
@@ -130,10 +131,10 @@ private:
 			_mm_mfence();
 			if (hook->hookData.fnHooked != *vftEntry) {
 				hook->hookData.fnHooked = *vftEntry;
-				prevHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookData));
+				prevHook = reinterpret_cast<HookType*>(reinterpret_cast<uintptr_t>(hook->hookData.fnHooked) - sizeof(HookBase));
 			}
 			VFTHookTemplate::rdataWrite(&prevHook->hookData.previous, hook);
-			VFTHookTemplate::rdataWrite(vftEntry, &hook->asmRaw);
+			VFTHookTemplate::rdataWrite(vftEntry, reinterpret_cast<uint8_t*>(hook) + sizeof(HookBase));
 
 			// unlock the mutex
 			mutex.unlock();
@@ -143,7 +144,7 @@ private:
 			if (hook->hookData.fnHooked != *vftEntry) hook->hookData.fnHooked = *vftEntry;
 
 			// write a pointer to the hook to the virtual function table
-			VFTHookTemplate::rdataWrite(vftEntry, &hook->asmRaw);
+			VFTHookTemplate::rdataWrite(vftEntry, reinterpret_cast<uint8_t*>(hook) + sizeof(HookBase));
 		}
 	}
 
