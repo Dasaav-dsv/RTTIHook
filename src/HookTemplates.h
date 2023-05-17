@@ -234,6 +234,69 @@ struct ReturnHook {
 	};
 };
 
+// A template for completely overriding the hooked function with the hooking function.
+// The integer callee context is preserved in a HookContext structure and passed as the first argument to the hooking function.
+// The second argument passed to the hooking function is a pointer to the hooked function.
+// From within the hooking function, you may call the original function through its pointer, do it conditionally or not at all.
+// Hooking function signature:
+// intptr_t (*)(HookContext*, void*)
+// Does not include SIMD registers, use OverrideHookV for that.
+struct OverrideHook {
+	OverrideHook() {}
+
+	//data:
+	HookBase hookData{};
+
+	// assembly:
+	uint8_t asmRaw1[9] = {
+	0x41, 0x52,                                     // push   r10
+	0x4C, 0x8B, 0x15, 0xCF, 0xFF, 0xFF, 0xFF,       // mov    r10,[pool]
+	};
+	HookBorrowContext asmBorrow{};
+	uint8_t asmRaw2[146] = {
+	0x48, 0x89, 0x58, 0x08,                         // mov    [reg64_rbx],rbx
+	0x48, 0x89, 0x48, 0x10,                         // mov    [reg64_rcx],rcx
+	0x48, 0x89, 0x50, 0x18,                         // mov    [reg64_rdx],rdx
+	0x48, 0x89, 0x60, 0x20,                         // mov    [reg64_rsp],rsp
+	0x48, 0x89, 0x68, 0x28,                         // mov    [reg64_rbp],rbp
+	0x48, 0x89, 0x70, 0x30,                         // mov    [reg64_rsi],rsi
+	0x48, 0x89, 0x78, 0x38,                         // mov    [reg64_rdi],rdi
+	0x4C, 0x89, 0x40, 0x40,                         // mov    [reg64_r8],r8
+	0x4C, 0x89, 0x48, 0x48,                         // mov    [reg64_r9],r9
+	0x8F, 0x40, 0x50,                               // pop    [reg64_r10]
+	0x4C, 0x89, 0x58, 0x58,                         // mov    [reg64_r11],r11
+	0x4C, 0x89, 0x60, 0x60,                         // mov    [reg64_r12],r12
+	0x4C, 0x89, 0x68, 0x68,                         // mov    [reg64_r13],r13
+	0x4C, 0x89, 0x70, 0x70,                         // mov    [reg64_r14],r14
+	0x4C, 0x89, 0x78, 0x78,                         // mov    [reg64_r15],r15
+	0x48, 0x8D, 0x05, 0x15, 0x00, 0x00, 0x00,       // lea    rax,[new_return]
+	0x48, 0x87, 0x04, 0x24,                         // xchg   [old_return],rax
+	0x49, 0x89, 0x04, 0x24,                         // mov    [reg64_rax],rax
+	0x48, 0x8B, 0x15, 0x81, 0xFF, 0xFF, 0xFF,       // mov    rdx,[fnHooked]
+	0xFF, 0x25, 0x73, 0xFF, 0xFF, 0xFF,             // jmp    [fnNew]
+	0x41, 0xFF, 0x34, 0x24,                         // push   [reg64_rax] <- new_return
+	0x50,                                           // push   rax
+	0x4C, 0x89, 0xE0,                               // mov    rax,r12
+	0x48, 0x8B, 0x58, 0x08,                         // mov    rbx,[reg64_rbx]
+	0x48, 0x8B, 0x48, 0x10,                         // mov    rcx,[reg64_rcx]
+	0x48, 0x8B, 0x50, 0x18,                         // mov    rdx,[reg64_rdx]
+	0x48, 0x8B, 0x68, 0x28,                         // mov    rbp,[reg64_rbp]
+	0x48, 0x8B, 0x70, 0x30,                         // mov    rsi,[reg64_rsi]
+	0x48, 0x8B, 0x78, 0x38,                         // mov    rdi,[reg64_rdi]
+	0x4C, 0x8B, 0x40, 0x40,                         // mov    r8,[reg64_r8]
+	0x4C, 0x8B, 0x48, 0x48,                         // mov    r9,[reg64_r9]
+	0x4C, 0x8B, 0x68, 0x68,                         // mov    r13,[reg64_r13]
+	0x4C, 0x8B, 0x70, 0x70,                         // mov    r14,[reg64_r14]
+	0x4C, 0x8B, 0x78, 0x78,                         // mov    r15,[reg64_r15]
+	0x4C, 0x8B, 0x15, 0x28, 0xFF, 0xFF, 0xFF,       // mov    r10,[pool]
+	};
+	HookReturnContext asmReturn{};
+	uint8_t asmRaw3[2] = {
+	0x58,                                           // pop    rax
+	0xC3,                                           // ret
+	};
+};
+
 // A special hook template that loads all integer registers into the context structure,
 // then passes a pointer to it to the hooking function as its first parameter.
 // This allows modifying any register by accessing them inside the struct.
@@ -455,13 +518,104 @@ struct ReturnHookV {
 	};
 };
 
+// A template for completely overriding the hooked function with the hooking function.
+// The entire callee context is preserved in a HookContext structure and passed as the first argument to the hooking function.
+// The second argument passed to the hooking function is a pointer to the hooked function.
+// From within the hooking function, you may call the original function through its pointer, do it conditionally or not at all.
+// Hooking function signature:
+// intptr_t (*)(HookContext*, void*)
+// Use OverrideHook if you only need the integer register context.
+struct OverrideHookV {
+	OverrideHookV() {}
+
+	//data:
+	HookBase hookData{};
+
+	// assembly:
+	uint8_t asmRaw1[9] = {
+	0x41, 0x52,                                     // push   r10
+	0x4C, 0x8B, 0x15, 0xCF, 0xFF, 0xFF, 0xFF,       // mov    r10,[pool]
+	};
+	HookBorrowContext asmBorrow{};
+	uint8_t asmRaw2[358] = {
+	0x48, 0x89, 0x58, 0x08,                         // mov    [reg64_rbx],rbx
+	0x48, 0x89, 0x48, 0x10,                         // mov    [reg64_rcx],rcx
+	0x48, 0x89, 0x50, 0x18,                         // mov    [reg64_rdx],rdx
+	0x48, 0x89, 0x60, 0x20,                         // mov    [reg64_rsp],rsp
+	0x48, 0x89, 0x68, 0x28,                         // mov    [reg64_rbp],rbp
+	0x48, 0x89, 0x70, 0x30,                         // mov    [reg64_rsi],rsi
+	0x48, 0x89, 0x78, 0x38,                         // mov    [reg64_rdi],rdi
+	0x4C, 0x89, 0x40, 0x40,                         // mov    [reg64_r8],r8
+	0x4C, 0x89, 0x48, 0x48,                         // mov    [reg64_r9],r9
+	0x8F, 0x40, 0x50,                               // pop    [reg64_r10]
+	0x4C, 0x89, 0x58, 0x58,                         // mov    [reg64_r11],r11
+	0x4C, 0x89, 0x60, 0x60,                         // mov    [reg64_r12],r12
+	0x4C, 0x89, 0x68, 0x68,                         // mov    [reg64_r13],r13
+	0x4C, 0x89, 0x70, 0x70,                         // mov    [reg64_r14],r14
+	0x4C, 0x89, 0x78, 0x78,                         // mov    [reg64_r15],r15
+	0x0F, 0x29, 0x80, 0x80, 0x00, 0x00, 0x00,       // movaps [imm256_xmm0],xmm0
+	0x0F, 0x29, 0x88, 0xA0, 0x00, 0x00, 0x00,       // movaps [imm256_xmm1],xmm1
+	0x0F, 0x29, 0x90, 0xC0, 0x00, 0x00, 0x00,       // movaps [imm256_xmm2],xmm2
+	0x0F, 0x29, 0x98, 0xE0, 0x00, 0x00, 0x00,       // movaps [imm256_xmm3],xmm3
+	0x0F, 0x29, 0xA0, 0x00, 0x01, 0x00, 0x00,       // movaps [imm256_xmm4],xmm4
+	0x0F, 0x29, 0xA8, 0x20, 0x01, 0x00, 0x00,       // movaps [imm256_xmm5],xmm5
+	0x0F, 0x29, 0xB0, 0x40, 0x01, 0x00, 0x00,       // movaps [imm256_xmm6],xmm6
+	0x0F, 0x29, 0xB8, 0x60, 0x01, 0x00, 0x00,       // movaps [imm256_xmm7],xmm7
+	0x44, 0x0F, 0x29, 0x80, 0x80, 0x01, 0x00, 0x00, // movaps [imm256_xmm8],xmm8
+	0x44, 0x0F, 0x29, 0x88, 0xA0, 0x01, 0x00, 0x00, // movaps [imm256_xmm9],xmm9
+	0x44, 0x0F, 0x29, 0x90, 0xC0, 0x01, 0x00, 0x00, // movaps [imm256_xmm10],xmm10
+	0x44, 0x0F, 0x29, 0x98, 0xE0, 0x01, 0x00, 0x00, // movaps [imm256_xmm11],xmm11
+	0x44, 0x0F, 0x29, 0xA0, 0x00, 0x02, 0x00, 0x00, // movaps [imm256_xmm12],xmm12
+	0x44, 0x0F, 0x29, 0xA8, 0x20, 0x02, 0x00, 0x00, // movaps [imm256_xmm13],xmm13
+	0x44, 0x0F, 0x29, 0xB0, 0x40, 0x02, 0x00, 0x00, // movaps [imm256_xmm14],xmm14
+	0x44, 0x0F, 0x29, 0xB8, 0x60, 0x02, 0x00, 0x00, // movaps [imm256_xmm15],xmm15
+	0x48, 0x8D, 0x05, 0x15, 0x00, 0x00, 0x00,       // lea    rax,[new_return]
+	0x48, 0x87, 0x04, 0x24,                         // xchg   [old_return],rax
+	0x49, 0x89, 0x04, 0x24,                         // mov    [reg64_rax],rax
+	0x48, 0x8B, 0x15, 0x09, 0xFF, 0xFF, 0xFF,       // mov    rdx,[fnHooked]
+	0xFF, 0x25, 0xFB, 0xFE, 0xFF, 0xFF,             // jmp    [fnNew]
+	0x41, 0xFF, 0x34, 0x24,                         // push   [reg64_rax] <- new_return
+	0x50,                                           // push   rax
+	0x4C, 0x89, 0xE0,                               // mov    rax,r12
+	0x48, 0x8B, 0x58, 0x08,                         // mov    rbx,[reg64_rbx]
+	0x48, 0x8B, 0x48, 0x10,                         // mov    rcx,[reg64_rcx]
+	0x48, 0x8B, 0x50, 0x18,                         // mov    rdx,[reg64_rdx]
+	0x48, 0x8B, 0x68, 0x28,                         // mov    rbp,[reg64_rbp]
+	0x48, 0x8B, 0x70, 0x30,                         // mov    rsi,[reg64_rsi]
+	0x48, 0x8B, 0x78, 0x38,                         // mov    rdi,[reg64_rdi]
+	0x4C, 0x8B, 0x40, 0x40,                         // mov    r8,[reg64_r8]
+	0x4C, 0x8B, 0x48, 0x48,                         // mov    r9,[reg64_r9]
+	0x4C, 0x8B, 0x68, 0x68,                         // mov    r13,[reg64_r13]
+	0x4C, 0x8B, 0x70, 0x70,                         // mov    r14,[reg64_r14]
+	0x4C, 0x8B, 0x78, 0x78,                         // mov    r15,[reg64_r15]
+	0x0F, 0x28, 0xA0, 0x00, 0x01, 0x00, 0x00,       // movaps xmm4,[imm256_xmm4]
+	0x0F, 0x28, 0xA8, 0x20, 0x01, 0x00, 0x00,       // movaps xmm5,[imm256_xmm5]
+	0x0F, 0x28, 0xB0, 0x40, 0x01, 0x00, 0x00,       // movaps xmm6,[imm256_xmm6]
+	0x0F, 0x28, 0xB8, 0x60, 0x01, 0x00, 0x00,       // movaps xmm7,[imm256_xmm7]
+	0x44, 0x0F, 0x28, 0x80, 0x80, 0x01, 0x00, 0x00, // movaps xmm8,[imm256_xmm8]
+	0x44, 0x0F, 0x28, 0x88, 0xA0, 0x01, 0x00, 0x00, // movaps xmm9,[imm256_xmm9]
+	0x44, 0x0F, 0x28, 0x90, 0xC0, 0x01, 0x00, 0x00, // movaps xmm10,[imm256_xmm10]
+	0x44, 0x0F, 0x28, 0x98, 0xE0, 0x01, 0x00, 0x00, // movaps xmm11,[imm256_xmm11]
+	0x44, 0x0F, 0x28, 0xA0, 0x00, 0x02, 0x00, 0x00, // movaps xmm12,[imm256_xmm12]
+	0x44, 0x0F, 0x28, 0xA8, 0x20, 0x02, 0x00, 0x00, // movaps xmm13,[imm256_xmm13]
+	0x44, 0x0F, 0x28, 0xB0, 0x40, 0x02, 0x00, 0x00, // movaps xmm14,[imm256_xmm14]
+	0x44, 0x0F, 0x28, 0xB8, 0x60, 0x02, 0x00, 0x00, // movaps xmm15,[imm256_xmm15]
+	0x4C, 0x8B, 0x15, 0x54, 0xFE, 0xFF, 0xFF,       // mov    r10,[pool]
+	};
+	HookReturnContext asmReturn{};
+	uint8_t asmRaw3[2] = {
+	0x58,                                           // pop    rax
+	0xC3,                                           // ret
+	};
+};
+
 // A special hook template that loads all integer registers into the context structure,
 // then passes a pointer to it to the hooking function as its first parameter.
 // This allows modifying any register by accessing them inside the struct.
 // Hooking function signature:
 // void (*)(HookContext*)
 // Includes SIMD registers (and is therefore quite large). 
-// Use ContextHook if you only.
+// Use ContextHook if you only need the integer register context.
 struct ContextHookV {
 	ContextHookV() {}
 
