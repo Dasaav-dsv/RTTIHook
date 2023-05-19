@@ -18,7 +18,7 @@
 // A struct for holding the combined context of (most of) the registers.
 // It is allocated automatically by hook templates.
 struct alignas(16) HookContext {
-	using reg64 = int[2];
+	using reg64 = uint64_t;
 	using imm256 = float[8];
 	reg64 rax;
 	reg64 rbx;
