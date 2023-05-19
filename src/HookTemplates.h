@@ -253,7 +253,7 @@ struct OverrideHook {
 	0x4C, 0x8B, 0x15, 0xCF, 0xFF, 0xFF, 0xFF,       // mov    r10,[pool]
 	};
 	HookBorrowContext asmBorrow{};
-	uint8_t asmRaw2[146] = {
+	uint8_t asmRaw2[149] = {
 	0x48, 0x89, 0x58, 0x08,                         // mov    [reg64_rbx],rbx
 	0x48, 0x89, 0x48, 0x10,                         // mov    [reg64_rcx],rcx
 	0x48, 0x89, 0x50, 0x18,                         // mov    [reg64_rdx],rdx
@@ -316,7 +316,7 @@ struct ContextHook {
 	0x4C, 0x8B, 0x15, 0xCF, 0xFF, 0xFF, 0xFF,       // mov    r10,[pool]
 	};
 	HookBorrowContext asmBorrow{};
-	uint8_t asmRaw2[136] = {
+	uint8_t asmRaw2[139] = {
 	0x48, 0x89, 0x58, 0x08,                         // mov    [reg64_rbx],rbx
 	0x48, 0x89, 0x48, 0x10,                         // mov    [reg64_rcx],rcx
 	0x48, 0x89, 0x50, 0x18,                         // mov    [reg64_rdx],rdx
@@ -539,7 +539,7 @@ struct OverrideHookV {
 	0x4C, 0x8B, 0x15, 0xCF, 0xFF, 0xFF, 0xFF,       // mov    r10,[pool]
 	};
 	HookBorrowContext asmBorrow{};
-	uint8_t asmRaw2[358] = {
+	uint8_t asmRaw2[361] = {
 	0x48, 0x89, 0x58, 0x08,                         // mov    [reg64_rbx],rbx
 	0x48, 0x89, 0x48, 0x10,                         // mov    [reg64_rcx],rcx
 	0x48, 0x89, 0x50, 0x18,                         // mov    [reg64_rdx],rdx
@@ -631,7 +631,7 @@ struct ContextHookV {
 	0x4C, 0x8B, 0x15, 0xCF, 0xFF, 0xFF, 0xFF,       // mov    r10,[pool]
 	};
 	HookBorrowContext asmBorrow{};
-	uint8_t asmRaw2[376] = {
+	uint8_t asmRaw2[379] = {
 	0x48, 0x89, 0x58, 0x08,                         // mov    [reg64_rbx],rbx
 	0x48, 0x89, 0x48, 0x10,                         // mov    [reg64_rcx],rcx
 	0x48, 0x89, 0x50, 0x18,                         // mov    [reg64_rdx],rdx
