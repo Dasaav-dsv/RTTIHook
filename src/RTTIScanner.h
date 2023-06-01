@@ -134,69 +134,29 @@ public:
 		PEParser::PESections* data = this->sectionData->data;
 		PEParser::PESections* rdata = this->sectionData->rdata;
 
-		// set up registers with constants for pattern matching:
-		__m128i sigFill = _mm_set1_epi8(_mm_extract_epi8(this->signature, 0));
-		__m128i maskFillNot = _mm_sub_epi8(_mm_set1_epi8(-1), _mm_set1_epi8(_mm_extract_epi8(this->bitmask, 0)));
-		__m128i sigShift = _mm_insert_epi8(_mm_srli_si128(this->signature, 1), 0, 15);
-		__m128i maskShiftNot = _mm_sub_epi8(_mm_set1_epi8(-1), _mm_insert_epi8(_mm_srli_si128(this->bitmask, 1), -1, 15));
+		if (!text || !data || !rdata) return false;
 
-		for (std::unique_ptr<PEParser::Section>& textSection : *text) {
-			// iterate over .text sections, get start and end addresses
-			unsigned char* textStart = textSection->start.as(base);
-			unsigned char* textEnd = textSection->end.as(base);
+		for (auto& section : *rdata) {
+			auto pCOL = section->start.as<CompleteObjectLocator**>(base);
+			auto end = section->end.as<CompleteObjectLocator**>(base);
+			while (pCOL++ < end) {
+				auto COL = *pCOL;
+				if (!PEParser::isAddressInSection(COL, rdata)) continue;
+				if (!PEParser::isAddressInSection(*(++pCOL), text)) continue;
+				if (COL->signature != 1) continue;
+				if (!PEParser::isIbo32InSection(COL->iboTypeDescriptor, data)) continue;
+				if (!PEParser::isIbo32InSection(COL->iboClassDescriptor, rdata)) continue;
+				TypeDescriptor* TD = COL->iboTypeDescriptor.as<TypeDescriptor*>(base);
+				ClassHierarchyDescriptor* CHD = COL->iboClassDescriptor.as<ClassHierarchyDescriptor*>(base);
 
-			__m128i bytes = _mm_loadu_si128(reinterpret_cast<__m128i*>(textStart));
+				if (!PEParser::isIbo32InSection(CHD->iboBaseClassDescriptor, rdata)) continue;
+				BaseClassDescriptor* pBCD = CHD->iboBaseClassDescriptor.as< BaseClassDescriptor*>(base);
 
-			for (unsigned char* curr = textStart; curr < textEnd;) {
-				// match instruction pattern, and-ing out masked bits
-				bytes = _mm_and_si128(bytes, maskFillNot);
-				bytes = _mm_cmpeq_epi8(bytes, sigFill);
+				// demangleName will return an empty string if the class name is invalid
+				std::string name = RTTI::demangleName(TD->name);
+				if (name.empty()) continue;
 
-				// locate the byte offset at which a matching byte was found
-				short match = _tzcnt_u16(_mm_movemask_epi8(bytes));
-				curr += match + 1;
-
-				bytes = _mm_loadu_si128(reinterpret_cast<__m128i*>(curr));
-				if (match == 16) continue; // 0 bytes matched
-
-				// final pattern equality comparison, and out masked bits before xor-ing with pattern
-				__m128i bytes_ = _mm_and_si128(bytes, maskShiftNot);
-				bytes_ = _mm_xor_si128(bytes_, sigShift);
-				if (_mm_testz_si128(bytes_, bytes_)) {
-					// compare instruction encodings to match our pattern, make sure the registers and prefixes in both instructions match
-					InstructionEncoding* inst = reinterpret_cast<InstructionEncoding*>(curr - 1);
-					if ((inst->movOperands & 0b00000111) == 0b00000101 && (!(inst->movOperands & 0b01000000) || inst->movExtraOp)) continue;
-					if ((inst->leaRexPrefix & 0b00000100) != (inst->movRexPrefix & 0b00000100)) continue;
-					if ((inst->leaOperands ^ inst->movOperands) & 0b00111000) continue;
-
-					// the pointer to the COL is above the VFT address
-					void** pVFT = reinterpret_cast<void**>(curr + inst->RIPOffset + 6);
-					CompleteObjectLocator** ppCOL = reinterpret_cast<CompleteObjectLocator**>(curr + inst->RIPOffset - 2);
-					if (!PEParser::isAddressInSection(ppCOL, rdata)) continue;
-
-					// the COL address should be in .rdata
-					CompleteObjectLocator* pCOL = *ppCOL;
-					if (!PEParser::isAddressInSection(pCOL, rdata)) continue;
-
-					// the signature should equal 1 in x86-64 code
-					if (pCOL->signature != 1) continue;
-
-					// get and match RTTI structures
-					if (!PEParser::isIbo32InSection(pCOL->iboTypeDescriptor, data)) continue;
-					if (!PEParser::isIbo32InSection(pCOL->iboClassDescriptor, rdata)) continue;
-
-					TypeDescriptor* pTD = pCOL->iboTypeDescriptor.as<TypeDescriptor*>(base);
-					ClassHierarchyDescriptor* pCHD = pCOL->iboClassDescriptor.as<ClassHierarchyDescriptor*>(base);
-
-					if (!PEParser::isIbo32InSection(pCHD->iboBaseClassDescriptor, rdata)) continue;
-					BaseClassDescriptor* pBCD = pCHD->iboBaseClassDescriptor.as< BaseClassDescriptor*>(base);
-
-					// demangleName will return an empty string if the class name is invalid
-					std::string name = RTTI::demangleName(pTD->name);
-					if (name.empty()) continue;
-
-					RTTIScanner::classRTTI.emplace(name, std::make_unique<RTTI>(pVFT, pCOL, pTD, pCHD, pBCD));
-				}
+				RTTIScanner::classRTTI.emplace(name, std::make_unique<RTTI>(reinterpret_cast<void**>(pCOL), COL, TD, CHD, pBCD));
 			}
 		}
 
