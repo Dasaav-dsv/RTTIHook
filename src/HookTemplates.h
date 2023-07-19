@@ -3,7 +3,7 @@
 #include <mutex>
 #include <array>
 #include <memory>
-#include <cstdint>
+#include <cstddef>
 #include <processthreadsapi.h>
 
 #ifdef UNIHOOK_THREAD_ACCESS_LIMIT
@@ -265,7 +265,8 @@ struct OverrideHook {
 	0x4C, 0x89, 0x48, 0x48,                         // mov    [reg64_r9],r9
 	0x8F, 0x40, 0x50,                               // pop    [reg64_r10]
 	0x4C, 0x89, 0x58, 0x58,                         // mov    [reg64_r11],r11
-	0x4C, 0x89, 0x60, 0x60,                         // mov    [reg64_r12],r12
+	//0x4C, 0x89, 0x60, 0x60,                       // mov    [reg64_r12],r12
+	0x0F, 0x1F, 0x40, 0x00,                         // NOP - fix later
 	0x4C, 0x89, 0x68, 0x68,                         // mov    [reg64_r13],r13
 	0x4C, 0x89, 0x70, 0x70,                         // mov    [reg64_r14],r14
 	0x4C, 0x89, 0x78, 0x78,                         // mov    [reg64_r15],r15
@@ -328,7 +329,8 @@ struct ContextHook {
 	0x4C, 0x89, 0x48, 0x48,                         // mov    [reg64_r9],r9
 	0x8F, 0x40, 0x50,                               // pop    [reg64_r10]
 	0x4C, 0x89, 0x58, 0x58,                         // mov    [reg64_r11],r11
-	0x4C, 0x89, 0x60, 0x60,                         // mov    [reg64_r12],r12
+	//0x4C, 0x89, 0x60, 0x60,                       // mov    [reg64_r12],r12
+	0x0F, 0x1F, 0x40, 0x00,                         // NOP - fix later
 	0x4C, 0x89, 0x68, 0x68,                         // mov    [reg64_r13],r13
 	0x4C, 0x89, 0x70, 0x70,                         // mov    [reg64_r14],r14
 	0x4C, 0x89, 0x78, 0x78,                         // mov    [reg64_r15],r15
@@ -551,7 +553,8 @@ struct OverrideHookV {
 	0x4C, 0x89, 0x48, 0x48,                         // mov    [reg64_r9],r9
 	0x8F, 0x40, 0x50,                               // pop    [reg64_r10]
 	0x4C, 0x89, 0x58, 0x58,                         // mov    [reg64_r11],r11
-	0x4C, 0x89, 0x60, 0x60,                         // mov    [reg64_r12],r12
+	//0x4C, 0x89, 0x60, 0x60,                       // mov    [reg64_r12],r12
+	0x0F, 0x1F, 0x40, 0x00,                         // NOP - fix later
 	0x4C, 0x89, 0x68, 0x68,                         // mov    [reg64_r13],r13
 	0x4C, 0x89, 0x70, 0x70,                         // mov    [reg64_r14],r14
 	0x4C, 0x89, 0x78, 0x78,                         // mov    [reg64_r15],r15
@@ -643,7 +646,8 @@ struct ContextHookV {
 	0x4C, 0x89, 0x48, 0x48,                         // mov    [reg64_r9],r9
 	0x8F, 0x40, 0x50,                               // pop    [reg64_r10]
 	0x4C, 0x89, 0x58, 0x58,                         // mov    [reg64_r11],r11
-	0x4C, 0x89, 0x60, 0x60,                         // mov    [reg64_r12],r12
+	//0x4C, 0x89, 0x60, 0x60,                       // mov    [reg64_r12],r12
+	0x0F, 0x1F, 0x40, 0x00,                         // NOP - fix later
 	0x4C, 0x89, 0x68, 0x68,                         // mov    [reg64_r13],r13
 	0x4C, 0x89, 0x70, 0x70,                         // mov    [reg64_r14],r14
 	0x4C, 0x89, 0x78, 0x78,                         // mov    [reg64_r15],r15
